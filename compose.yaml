@@ -1,0 +1,25 @@
+services:
+  disctracker:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+    volumes:
+      - disc-data:/app/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/discs').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+volumes:
+  disc-data:
