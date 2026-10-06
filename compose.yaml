@@ -1,13 +1,15 @@
+name: disctracker
+
 services:
   disctracker:
     build: .
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3000:3000"
+      - "0.0.0.0:3009:3000"
     environment:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       SESSION_SECRET: ${SESSION_SECRET:-}
-      APP_URL: ${APP_URL:-http://localhost:3000}
+      APP_URL: ${APP_URL:-http://10.0.0.16:3009}
     volumes:
       - disc-data:/app/data
     healthcheck:

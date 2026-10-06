@@ -8,6 +8,8 @@ import { randomBytes } from "node:crypto";
 import sharp from "sharp";
 const directory = await mkdtemp(path.join(tmpdir(), "disctracker-smoke-"));
 const origin = "http://127.0.0.1:3101";
+// Connect locally, but exercise the configured LAN origin like a mapped Docker port.
+const lanOrigin = "http://10.0.0.16:3009";
 const password = randomBytes(20).toString("hex");
 const secret = randomBytes(32).toString("hex");
 let server;
@@ -18,7 +20,7 @@ async function stop() {
   server.kill();
   await exit;
 }
-async function start(auth) {
+async function start(auth, appUrl = lanOrigin) {
   serverOutput = "";
   server = spawn(
     process.execPath,
@@ -29,7 +31,7 @@ async function start(auth) {
         NODE_ENV: "production",
         DATA_DIR: path.relative(process.cwd(), directory),
         PORT: "3101",
-        APP_URL: origin,
+        APP_URL: appUrl,
         ADMIN_PASSWORD: auth ? password : "",
         SESSION_SECRET: auth ? secret : "",
         NEXT_TELEMETRY_DISABLED: "1",
@@ -101,6 +103,21 @@ try {
   console.log("PASS: production without credentials rejects editing");
   await stop();
   await start(true);
+  for (const rejectedOrigin of [undefined, "http://10.0.0.16:3000"]) {
+    assert.equal(
+      (
+        await fetch(`${origin}/api/auth`, {
+          method: "POST",
+          headers: {
+            ...(rejectedOrigin ? { Origin: rejectedOrigin } : {}),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ password }),
+        })
+      ).status,
+      403,
+    );
+  }
   assert.equal(
     (
       await fetch(`${origin}/api/auth`, {
@@ -126,12 +143,16 @@ try {
   );
   const login = await fetch(`${origin}/api/auth`, {
     method: "POST",
-    headers: { Origin: origin, "Content-Type": "application/json" },
+    headers: { Origin: lanOrigin, "Content-Type": "application/json" },
     body: JSON.stringify({ password }),
   });
   assert.equal(login.status, 200);
-  const cookie = login.headers.get("set-cookie").split(";")[0];
-  const headers = { Origin: origin, Cookie: cookie };
+  const setCookie = login.headers.get("set-cookie");
+  assert.match(setCookie, /;\s*HttpOnly(?:;|$)/i);
+  assert.match(setCookie, /;\s*SameSite=Strict(?:;|$)/i);
+  assert.doesNotMatch(setCookie, /;\s*Secure(?:;|$)/i);
+  const cookie = setCookie.split(";")[0];
+  const headers = { Origin: lanOrigin, Cookie: cookie };
   assert.equal(
     (await (await fetch(`${origin}/api/auth`, { headers })).json()).canEdit,
     true,
@@ -146,7 +167,7 @@ try {
     ).status,
     403,
   );
-  console.log("PASS: owner login, session cookie, and cross-origin protection");
+  console.log("PASS: LAN HTTP owner login, cookie flags, and origin/port protection");
   const image = await sharp({
     create: { width: 100, height: 100, channels: 3, background: "blue" },
   })
@@ -204,6 +225,7 @@ try {
   await start(true);
   const persisted = await (await fetch(`${origin}/api/discs`)).json();
   assert.equal(persisted[0].id, created.id);
+  assert.equal((await fetch(`${origin}/api/photos/${created.photo}`)).status, 200);
   assert.equal(
     (
       await fetch(`${origin}/api/discs/${created.id}`, {
@@ -235,6 +257,19 @@ try {
   for (const href of styles) assert.equal((await fetch(new URL(href.replace(/&amp;/g, "&"), origin))).status, 200);
   assert.equal((await fetch(`${origin}/favicon.svg`)).status, 200);
   console.log("PASS: standalone startup, production page, JavaScript, CSS, and favicon");
+  await stop();
+  const httpsOrigin = "https://discs.example.com";
+  await start(true, httpsOrigin);
+  const httpsLogin = await fetch(`${origin}/api/auth`, {
+    method: "POST",
+    headers: { Origin: httpsOrigin, "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  assert.equal(httpsLogin.status, 200);
+  assert.match(httpsLogin.headers.get("set-cookie"), /;\s*Secure(?:;|$)/i);
+  assert.match(httpsLogin.headers.get("set-cookie"), /;\s*HttpOnly(?:;|$)/i);
+  assert.match(httpsLogin.headers.get("set-cookie"), /;\s*SameSite=Strict(?:;|$)/i);
+  console.log("PASS: switching APP_URL to HTTPS enables Secure session cookies");
 } finally {
   await stop();
   // This directory was created by this test and contains only its own fixtures.

@@ -38,25 +38,31 @@ There is one owner login, with **no username and no registration screen**. If yo
 
 For manual setup:
 
-Copy `.env.example` to `.env.local` for local use, or to `.env` for Docker Compose. Set a strong `ADMIN_PASSWORD` and a `SESSION_SECRET` of at least 32 characters. Generate the secret with:
+Copy `.env.example` to `.env.local` for local use, or to `.env` for Docker Compose. For the Windows launcher, set `APP_URL=http://127.0.0.1:3000`; the example defaults to the server's LAN URL. Set a strong `ADMIN_PASSWORD` and a `SESSION_SECRET` of at least 32 characters. Generate the secret with:
 
 ```powershell
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Set `APP_URL` to the URL you will use, e.g. `https://discs.example.com`. HTTPS URLs enable Secure session cookies. Sessions last 12 hours. Changing either the password or the session secret should invalidate existing sessions (the app signs sessions using both). With missing credentials, production is read-only: the server rejects edits, uploads, deletes, and exports. This app has one owner; public sign-up is not available.
+Set `APP_URL` to the exact browser URL: `http://10.0.0.16:3009` for the current LAN deployment. HTTP sessions retain HttpOnly and SameSite=Strict cookies and origin checks; HTTPS URLs additionally enable Secure cookies. HTTP traffic is unencrypted, so use this configuration only on a trusted LAN. Sessions last 12 hours. Changing either the password or the session secret should invalidate existing sessions (the app signs sessions using both). With missing credentials, production is read-only: the server rejects edits, uploads, deletes, and exports. This app has one owner; public sign-up is not available.
 
 For local use, keep `APP_URL=http://127.0.0.1:3000`. To reset your password, change `ADMIN_PASSWORD` in `.env.local` and restart the site. Keep the file private; it is ignored by Git. If your password contains `$`, write it as `\$` in the environment file, because Next.js expands unescaped dollar signs. Use quotes around values containing `#` or leading/trailing spaces.
 
 ## Home server / Docker
 
+The target is Ubuntu Server at `10.0.0.16`, with the checkout at `/opt/docker/disctracker` and browser URL `http://10.0.0.16:3009`. Cloudflare and a public domain are not required. For full setup, Windows collection/photo transfer, backups, and optional future HTTPS, see [SERVER_HANDOFF.md](SERVER_HANDOFF.md).
+
 ```sh
-docker compose up -d --build
+cd /opt/docker/disctracker
+docker compose -p disctracker config --quiet
+docker compose -p disctracker up -d --build
 ```
 
-The container stores its database and photos in the persistent `disc-data` volume. Pull code updates from GitHub and run the same command to rebuild. Keep `.env`, databases, and uploads out of Git. Do not run `docker compose down -v` unless you intend to remove your collection.
+Compose declares `name: disctracker`; keep this project name when deploying or updating. The container stores its database and photos in the existing persistent `disc-data` volume (Docker name `disctracker_disc-data`). Pull code updates from GitHub and run the same command to rebuild. Keep `.env`, databases, and uploads out of Git. Do not run `docker compose down -v` or remove/prune the data volume.
 
-The host port is bound to `127.0.0.1:3000`. A Cloudflare Tunnel running on the host can point to `http://localhost:3000`. If the tunnel runs in another container, attach it to the same Docker network and use `http://disctracker:3000`. Set `APP_URL` to your Cloudflare HTTPS hostname before signing in. API responses are not cacheable; configure Cloudflare to honor origin cache headers and avoid caching `/api/*` except photos. Use a reverse proxy upload limit of 11 MB to bound request bodies before the app parses them.
+The host binding is `0.0.0.0:3009:3000`; the app and health check continue to use container port `3000`. Host port `3000` is untouched. On the phone, open `http://10.0.0.16:3009` while connected to the LAN. Allow access only from trusted LAN clients in your firewall, account for Docker's published-port rules, and do not forward port `3009` on the router. The collection is readable without login by anyone who can reach the app; owner login is required to edit.
+
+For later public access, put HTTPS through a reverse proxy or tunnel in front of the app, restrict direct HTTP access, set `APP_URL` to the final HTTPS URL, and recreate the container. Secure cookies then enable automatically. Keep origin checks and cache headers intact. Cloudflare is optional, not a prerequisite; see the handoff guide before changing routing.
 
 Docker is not required for local use. For a local production run: `npm run build` then `npm start` (also loopback only). Configure owner credentials for editing.
 
