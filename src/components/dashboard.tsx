@@ -123,11 +123,13 @@ export function Modal({
   children,
   close,
   wide = false,
+  mobileFullScreen = false,
 }: {
   title: string;
   children: ReactNode;
   close: () => void;
   wide?: boolean;
+  mobileFullScreen?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const closeRef = useRef(close);
@@ -137,7 +139,20 @@ export function Modal({
     el.showModal();
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    // Mobile keyboards shrink the visual viewport, not always the CSS viewport.
+    // Keep the entry sheet above the keyboard without interfering with pinch zoom.
+    const viewport = window.visualViewport;
+    const updateViewport = () => {
+      if (!viewport || viewport.scale !== 1) return;
+      el.style.setProperty("--modal-viewport-height", `${viewport.height}px`);
+      el.style.setProperty("--modal-viewport-top", `${viewport.offsetTop}px`);
+    };
+    updateViewport();
+    viewport?.addEventListener("resize", updateViewport);
+    viewport?.addEventListener("scroll", updateViewport);
     return () => {
+      viewport?.removeEventListener("resize", updateViewport);
+      viewport?.removeEventListener("scroll", updateViewport);
       el.close();
       document.body.style.overflow = previous;
     };
@@ -145,7 +160,7 @@ export function Modal({
   return (
     <dialog
       ref={dialog}
-      className={`modal ${wide ? "wide" : ""}`}
+      className={`modal ${wide ? "wide" : ""} ${mobileFullScreen ? "mobile-fullscreen" : ""}`}
       aria-label={title}
       onCancel={(event) => {
         // A file input emits a bubbling cancel event when its picker is
@@ -1091,6 +1106,7 @@ function DiscForm({
       title={disc ? "Edit disc" : "Add a disc"}
       close={() => !busy && close()}
       wide
+      mobileFullScreen
     >
       <form onSubmit={submit}>
         <div className="modal-body form-body">
@@ -1107,7 +1123,6 @@ function DiscForm({
                     <Search size={18} />
                     <input
                       id="catalog-query"
-                      autoFocus
                       aria-label="Find disc in DiscIt"
                       placeholder="Try Buzzz, Destroyer, Aviar…"
                       value={query}
@@ -1338,6 +1353,7 @@ function DiscForm({
                       min="1"
                       max="300"
                       step="0.1"
+                      inputMode="decimal"
                       placeholder="175"
                       value={form.weight ?? ""}
                       onChange={(e) =>

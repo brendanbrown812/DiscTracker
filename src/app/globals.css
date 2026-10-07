@@ -879,7 +879,7 @@ td .flight-numbers strong {
   border-radius: 15px;
   width: 460px;
   max-width: calc(100vw - 24px);
-  max-height: calc(100dvh - 40px);
+  max-height: calc(var(--modal-viewport-height, 100dvh) - 40px);
   box-shadow: 0 25px 100px #0008;
   overflow: auto;
 }
@@ -1527,7 +1527,7 @@ h4 {
     width: max-content;
   }
   .modal {
-    max-height: calc(100dvh - 20px);
+    max-height: calc(var(--modal-viewport-height, 100dvh) - 20px);
   }
   .modal-header {
     padding: 16px 20px;
@@ -1687,7 +1687,103 @@ h4 {
   .filter-panel label {
     min-width: 120px;
   }
-  .form-grid input {
+}
+@media (max-width: 780px), (hover: none) and (pointer: coarse) {
+  /* Readable controls prevent focus zoom; keep user-controlled pinch zoom available. */
+  .modal input,
+  .modal select,
+  .modal textarea,
+  .search input,
+  .toolbar > select,
+  .filter-panel select {
+    font-size: 16px;
+    min-height: 48px;
+  }
+  .modal .flight-fields input {
+    font-size: 20px;
+    padding-inline: 8px;
+  }
+  .mobile-fullscreen .flight-fields {
+    gap: 8px;
+  }
+  .modal.mobile-fullscreen {
+    position: fixed;
+    inset: var(--modal-viewport-top, 0px) 0 auto;
+    margin: 0;
+    width: 100%;
+    max-width: none;
+    height: var(--modal-viewport-height, 100dvh);
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    overflow: hidden;
+  }
+  .mobile-fullscreen .modal-shell,
+  .mobile-fullscreen .modal-shell > form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+  }
+  .mobile-fullscreen .modal-shell > form {
+    flex: 1;
+  }
+  .mobile-fullscreen .modal-header,
+  .mobile-fullscreen .modal-footer {
+    position: static;
+    flex-shrink: 0;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  .mobile-fullscreen .modal-header {
+    padding-top: max(10px, env(safe-area-inset-top));
+    padding-bottom: 10px;
+  }
+  .mobile-fullscreen .modal-header .icon-button {
+    width: 44px;
+    height: 44px;
+  }
+  .mobile-fullscreen .form-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scroll-padding-block: 16px;
+    padding: 20px max(16px, env(safe-area-inset-right)) 20px max(16px, env(safe-area-inset-left));
+  }
+  .mobile-fullscreen .modal-footer {
+    padding-top: 10px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+  .mobile-fullscreen .modal-footer > button {
+    min-height: 48px;
+  }
+  .mobile-fullscreen .modal-footer > .primary {
+    flex: 1;
+  }
+  .mobile-fullscreen .form-grid,
+  .mobile-fullscreen .physical-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .mobile-fullscreen .photo-upload {
+    min-height: 140px;
+    margin-bottom: 20px;
+  }
+  .mobile-fullscreen .photo-picker {
+    min-height: 44px;
+    font-size: 14px;
+    padding: 10px 16px;
+  }
+  .mobile-fullscreen .upload-preview .icon-button {
+    width: 44px;
+    height: 44px;
+  }
+  .mobile-fullscreen .location-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mobile-fullscreen .location-options button {
+    min-height: 48px;
     font-size: 14px;
   }
 }

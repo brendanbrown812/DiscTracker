@@ -57,3 +57,65 @@ test("photo picker cancellation preserves the modal and unsaved entry; dialog ca
     }
   }
 });
+
+test("mobile entry follows keyboard viewport changes, preserves drafts and zoom, and cleans up listeners", async () => {
+  const page = new JSDOM('<!doctype html><div id="root"></div>', { url: "http://localhost:3000" });
+  const previous = new Map<string, PropertyDescriptor | undefined>();
+  for (const [key, value] of Object.entries({ window: page.window, document: page.window.document, IS_REACT_ACT_ENVIRONMENT: true })) {
+    previous.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
+    Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  }
+  Object.defineProperties(page.window.HTMLDialogElement.prototype, {
+    showModal: { value: function(this: HTMLDialogElement) { this.open = true; } },
+    close: { value: function(this: HTMLDialogElement) { this.open = false; } },
+  });
+  const viewport = Object.assign(new page.window.EventTarget(), { height: 844, offsetTop: 0, scale: 1 });
+  Object.defineProperty(page.window, "visualViewport", { value: viewport });
+  page.window.document.body.style.overflow = "auto";
+  const { createRoot } = await import("react-dom/client");
+  const root = createRoot(page.window.document.getElementById("root")!);
+  let mounted = true;
+  try {
+    await act(async () => {
+      root.render(createElement(Modal, {
+        title: "Add a disc", close: () => {}, wide: true, mobileFullScreen: true,
+        children: createElement("form", null, createElement("input", { defaultValue: "Unsaved Buzzz" })),
+      }));
+    });
+    const dialog = page.window.document.querySelector("dialog")!;
+    const input = dialog.querySelector("input")!;
+    assert.ok(dialog.classList.contains("mobile-fullscreen"));
+    assert.equal(dialog.style.getPropertyValue("--modal-viewport-height"), "844px");
+    assert.equal(page.window.document.body.style.overflow, "hidden");
+    await act(async () => {
+      Object.assign(viewport, { height: 380, offsetTop: 90 });
+      viewport.dispatchEvent(new page.window.Event("resize"));
+    });
+    assert.equal(dialog.style.getPropertyValue("--modal-viewport-height"), "380px");
+    assert.equal(dialog.style.getPropertyValue("--modal-viewport-top"), "90px");
+    assert.equal(input.value, "Unsaved Buzzz");
+    assert.equal(dialog.querySelector("input"), input);
+    Object.assign(viewport, { scale: 2, height: 190 });
+    viewport.dispatchEvent(new page.window.Event("resize"));
+    assert.equal(dialog.style.getPropertyValue("--modal-viewport-height"), "380px", "pinch zoom must not resize the sheet");
+    Object.assign(viewport, { scale: 1, height: 844, offsetTop: 0 });
+    viewport.dispatchEvent(new page.window.Event("scroll"));
+    assert.equal(dialog.style.getPropertyValue("--modal-viewport-height"), "844px");
+    assert.equal(dialog.style.getPropertyValue("--modal-viewport-top"), "0px");
+    await act(async () => { root.unmount(); });
+    mounted = false;
+    assert.equal(page.window.document.body.style.overflow, "auto");
+    Object.assign(viewport, { height: 400, offsetTop: 30 });
+    viewport.dispatchEvent(new page.window.Event("resize"));
+    viewport.dispatchEvent(new page.window.Event("scroll"));
+    assert.equal(dialog.style.getPropertyValue("--modal-viewport-height"), "844px", "viewport listeners must be removed on close");
+    assert.equal(dialog.open, false);
+  } finally {
+    if (mounted) await act(async () => { root.unmount(); });
+    page.window.close();
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+});
