@@ -241,6 +241,29 @@ test("interactive guide filters, changes axes and views, previews duplicates, an
     const pink = Array.from(
       document.querySelectorAll<HTMLButtonElement>(".guide-disc"),
     ).find((button) => button.getAttribute("aria-label")?.includes("Pink"))!;
+    assert.doesNotMatch(
+      pink.textContent!,
+      /Pink/,
+      "color belongs in the preview, not the compact card",
+    );
+    assert.equal(pink.querySelector(".guide-disc-plastic")?.textContent, "ESP");
+    assert.equal(
+      pink.querySelector(".guide-disc-weight")?.textContent,
+      "175 g",
+    );
+    assert.match(pink.title, /Buzzz.*ESP.*175 g.*Storage/);
+    const filterToggle = document.querySelector<HTMLButtonElement>(
+      ".guide-filter-toggle",
+    )!;
+    assert.equal(filterToggle.getAttribute("aria-expanded"), "false");
+    assert.equal(filterToggle.getAttribute("aria-controls"), "guide-controls");
+    await act(async () => {
+      filterToggle.click();
+    });
+    assert.equal(filterToggle.getAttribute("aria-expanded"), "true");
+    assert.ok(
+      document.querySelector(".guide-controls")?.classList.contains("is-open"),
+    );
     await act(async () => {
       pink.click();
     });
@@ -267,6 +290,21 @@ test("interactive guide filters, changes axes and views, previews duplicates, an
       1,
     );
     await select("Horizontal axis", "glide");
+    await act(async () => {
+      filterToggle.click();
+    });
+    assert.equal(filterToggle.getAttribute("aria-expanded"), "false");
+    assert.equal(
+      document.querySelector<HTMLSelectElement>('select[aria-label="Location"]')
+        ?.value,
+      "In Bag",
+    );
+    assert.equal(
+      document.querySelector<HTMLSelectElement>(
+        'select[aria-label="Horizontal axis"]',
+      )?.value,
+      "glide",
+    );
     assert.equal(
       document.querySelectorAll(".guide-matrix .guide-disc").length,
       2,

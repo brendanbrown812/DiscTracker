@@ -5,11 +5,13 @@ import Link from "next/link";
 import {
   ArrowLeft,
   ChartNoAxesCombined,
+  ChevronDown,
   Disc3,
   LayoutGrid,
   List,
   LoaderCircle,
   Search,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
 import { Modal } from "./dashboard";
@@ -58,18 +60,21 @@ function DiscTile({
       className="guide-disc"
       type="button"
       onClick={() => select(disc)}
+      title={`${disc.name} · ${disc.brand} · ${disc.plastic || "Plastic not set"}${disc.weight !== null ? ` · ${disc.weight} g` : ""} · ${disc.location}`}
       aria-label={`View ${disc.name}, ${disc.plastic || "unspecified plastic"}, ${disc.color || "unspecified color"}, ${disc.weight ?? "unknown"} grams, ${disc.location}`}
     >
       <span className="guide-disc-brand">{disc.brand}</span>
       <strong className="guide-disc-name">{disc.name}</strong>
       <span className="guide-disc-copy">
-        {[
-          disc.plastic,
-          disc.color,
-          disc.weight !== null ? `${disc.weight} g` : "",
-        ]
-          .filter(Boolean)
-          .join(" · ") || "Physical disc"}
+        <span
+          className="guide-disc-plastic"
+          title={disc.plastic || "Plastic not set"}
+        >
+          {disc.plastic || "Plastic not set"}
+        </span>
+        {disc.weight !== null && (
+          <span className="guide-disc-weight">{disc.weight} g</span>
+        )}
       </span>
       <Ratings disc={disc} />
       <span
@@ -88,6 +93,7 @@ export function FlightGuideView({ discs }: { discs: Disc[] }) {
   const [metric, setMetric] = useState<GuideMetric>("stability");
   const [view, setView] = useState<"chart" | "list">("chart");
   const [showEmptySpeeds, setShowEmptySpeeds] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<Disc | null>(null);
   const filtered = filterGuideDiscs(discs, filters);
   const guide = buildFlightGuide(filtered, metric, showEmptySpeeds);
@@ -97,7 +103,31 @@ export function FlightGuideView({ discs }: { discs: Disc[] }) {
   }
   return (
     <>
-      <section className="guide-controls" aria-label="Flight guide filters">
+      <button
+        type="button"
+        className="guide-filter-toggle"
+        aria-label="Filters and chart axes"
+        aria-expanded={filtersOpen}
+        aria-controls="guide-controls"
+        onClick={() => setFiltersOpen((open) => !open)}
+      >
+        <SlidersHorizontal size={16} />
+        <span>
+          Filters & axes
+          {activeFilters
+            ? ` (${Object.values(filters).filter(Boolean).length})`
+            : ""}
+        </span>
+        <small>
+          {metric === "stability" ? "Stability" : guideMetrics[metric].label}
+        </small>
+        <ChevronDown size={16} />
+      </button>
+      <section
+        id="guide-controls"
+        className={`guide-controls ${filtersOpen ? "is-open" : ""}`}
+        aria-label="Flight guide filters"
+      >
         <label className="guide-search">
           <span>Search your discs</span>
           <div>

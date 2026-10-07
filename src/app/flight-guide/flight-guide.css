@@ -9,15 +9,17 @@
 }
 .guide-controls {
   display: grid;
-  grid-template-columns: minmax(200px, 1.3fr) repeat(
-      3,
-      minmax(120px, 1fr)
-    ) minmax(220px, 1.4fr);
+  grid-template-columns:
+    minmax(200px, 1.3fr) repeat(3, minmax(120px, 1fr))
+    minmax(220px, 1.4fr);
   gap: 16px;
   padding: 20px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--surface);
+}
+.guide-filter-toggle {
+  display: none;
 }
 .guide-controls label > span {
   display: block;
@@ -133,9 +135,10 @@
   padding: 0 20px 16px;
 }
 .guide-chart-scroll {
-  overflow: auto;
-  max-height: 70vh;
-  overscroll-behavior: contain;
+  /* Desktop charts grow with the document; only wide axes scroll sideways. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
   scrollbar-color: #48543b #131a14;
 }
 .guide-chart-scroll:focus-visible {
@@ -224,6 +227,9 @@
 }
 .guide-disc {
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: normal;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -242,17 +248,45 @@
   border-color: var(--guide-tone, var(--accent));
 }
 .guide-disc-brand {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 1px;
   font-size: 9px;
 }
 .guide-disc-name {
+  width: 100%;
+  min-width: 0;
   font-size: 14px;
 }
 .guide-disc-copy {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
   color: #adbcaf;
   font-size: 11px;
+}
+.guide-disc-plastic {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.guide-disc-weight {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .guide-disc .badge {
   margin-top: 3px;
@@ -263,6 +297,7 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
+  flex-wrap: wrap;
 }
 .guide-disc .guide-ratings strong {
   font-size: 11px;
@@ -274,6 +309,7 @@
   width: 100%;
 }
 .guide-ratings > span {
+  min-width: 0;
   flex: 1;
   text-align: center;
   padding: 3px;
@@ -480,6 +516,45 @@
   }
 }
 @media (max-width: 780px) {
+  .guide-chart-scroll {
+    overflow-y: auto;
+    max-height: 70vh;
+    overscroll-behavior: contain;
+  }
+  .guide-content {
+    padding: 18px 10px;
+  }
+  .guide-content .page-heading {
+    margin-bottom: 16px;
+  }
+  .guide-filter-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    padding: 9px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    text-align: left;
+    font-size: 12px;
+  }
+  .guide-filter-toggle small {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 10px;
+    min-width: 0;
+  }
+  .guide-filter-toggle[aria-expanded="true"] > svg:last-child {
+    transform: rotate(180deg);
+  }
+  .guide-controls:not(.is-open) {
+    display: none;
+  }
+  .guide-controls.is-open {
+    margin-top: 10px;
+  }
   .guide-shell .sidebar nav {
     margin-top: 14px;
   }
@@ -494,15 +569,105 @@
     gap: 12px;
   }
   .guide-toolbar-actions {
-    width: 100%;
+    width: auto;
+    margin-left: auto;
     justify-content: space-between;
-  }
-  .guide-chart-description {
-    padding: 16px 14px 8px;
     gap: 8px;
   }
+  .guide-toolbar {
+    margin: 12px 0;
+    gap: 8px;
+  }
+  .guide-toolbar > p {
+    font-size: 11px;
+  }
+  .guide-view-toggle button {
+    min-height: 40px;
+    padding: 6px 8px;
+    font-size: 11px;
+    gap: 4px;
+  }
+  .guide-content > .guide-estimate {
+    margin-bottom: 12px;
+    padding: 8px 10px;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+  .guide-chart-description {
+    padding: 10px 8px 4px;
+    gap: 4px;
+  }
+  .guide-chart-description strong {
+    font-size: 13px;
+  }
+  .guide-chart-description p,
   .guide-scroll-hint {
-    padding: 0 14px 14px;
+    font-size: 10px;
+  }
+  .guide-checkbox {
+    min-height: 30px;
+    font-size: 11px;
+  }
+  .guide-scroll-hint {
+    padding: 0 8px 8px;
+  }
+  .guide-matrix {
+    /* Leave room for the pinned speed rail and three complete data columns,
+       even at 320px. Keep larger axis sets horizontally scrollable. */
+    --guide-column-width: clamp(76px, calc((100vw - 80px) / 3), 108px);
+    min-width: calc(36px + var(--guide-columns) * var(--guide-column-width));
+  }
+  .guide-matrix .guide-speed-header {
+    width: 36px;
+    font-size: 9px;
+  }
+  .guide-matrix .guide-speed {
+    font-size: 12px;
+  }
+  .guide-matrix thead th {
+    padding: 8px 3px;
+  }
+  .guide-matrix thead strong {
+    font-size: 10px;
+    line-height: 1.3;
+  }
+  .guide-matrix thead small {
+    display: none;
+  }
+  .guide-matrix td {
+    padding: 3px;
+  }
+  .guide-matrix .guide-cell {
+    min-height: 44px;
+    gap: 4px;
+  }
+  .guide-matrix .guide-disc {
+    min-height: 56px;
+    height: 56px;
+    padding: 5px 4px;
+    border-left-width: 2px;
+    border-radius: 4px;
+    gap: 2px;
+    justify-content: center;
+  }
+  .guide-matrix .guide-disc-brand,
+  .guide-matrix .guide-disc .guide-ratings,
+  .guide-matrix .guide-disc .badge {
+    display: none;
+  }
+  .guide-matrix .guide-disc-name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: 11px;
+    line-height: 14px;
+    max-height: 28px;
+  }
+  .guide-matrix .guide-disc-copy {
+    font-size: 9px;
+    line-height: 12px;
+    gap: 3px;
   }
   .guide-number-explanations {
     grid-template-columns: 1fr;
