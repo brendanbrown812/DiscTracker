@@ -1240,6 +1240,7 @@ td .flight-numbers strong {
   overflow-wrap: anywhere;
 }
 .detail-notes,
+.detail-moves,
 .history {
   border-top: 1px solid var(--line);
   margin-top: 24px;
@@ -1255,6 +1256,23 @@ h4 {
   color: #b5c4b8;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+.detail-moves > p {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.detail-moves + .detail-fields {
+  margin-top: 24px;
+}
+.detail-move-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+.detail-move-buttons .secondary {
+  min-height: 48px;
+  white-space: normal;
 }
 .history-item {
   display: flex;

@@ -26,11 +26,22 @@ The SQLite database and uploaded photos are stored in `data/`, outside Git. Disc
 - Add, edit, view, and remove discs, including photos.
 - DiscIt mold lookup and saved speed, glide, turn, and fade values.
 - Grid and table views; location, manufacturer, plastic, category, and speed filters.
+- Flight guide at `/flight-guide`: speed versus approximate stability, turn, fade, or glide, with chart/list views and collection filters.
 - Search by name, manufacturer, plastic, color, or location detail.
 - Automatic added date and optional actual purchase date and seller.
 - Lost/recovered workflow, date lost, and persistent location history.
 - JSON collection export, including location history. Photos are backed up separately.
 - Mobile layout, owner login, and public read-only access in production.
+
+## Flight guide
+
+Open **Flight guide** in the collection navigation. The default chart places faster discs higher and approximately more overstable discs to the left. Each card is one physical disc, including separate copies of the same mold. Filter by location (including In Bag), manufacturer, type, or search. Switch the horizontal axis to inspect glide, high-speed turn, or low-speed fade separately. Tap a disc for a preview and a link to its full record.
+
+The stability chart uses DiscTracker's own `turn + fade` comparison bands: sum ≥ 3 very overstable; [1, 3) overstable; (−1, 1) neutral; (−3, −1] understable; ≤ −3 very understable. This is a transparent approximation, **not** an official stability rating, Discraft's separate stability number, or Marshall Street's curated A–Q ranking. Different turn/fade pairs can have the same sum without the same flight. Prefer comparisons at similar speeds and within one brand; power, release, plastic, weight, wear, and wind affect actual flight. No distance or exact flight path is simulated.
+
+The guide uses your saved flight-number snapshots, with no additional DiscIt requests or database changes. Records without speed or the selected axis's required ratings appear in a separate list; missing numbers are never treated as zero. Fractional ratings keep exact rows/columns. Empty speed rows are hidden initially; enable them to see gaps across speeds 1–15. On phones, swipe the chart sideways (speed labels stay pinned) or switch to **List** for cards without horizontal scrolling. The guide is read-only and visible wherever the collection is visible; editing still requires existing owner access.
+
+Research: [Innova flight ratings](https://www.innovadiscs.com/home/disc-golf-faq/flight-ratings-system/), [Discraft flight numbers](https://support.discraft.com/support/solutions/articles/44001621475-what-are-these-numbers-on-my-disc-), and [Marshall Street chart conventions](https://www.marshallstreetdiscgolf.com/flightguide). The on-page “How to read this guide” explains the numbers, approximation, and sources.
 
 ## Owner login
 

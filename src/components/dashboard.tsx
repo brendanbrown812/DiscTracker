@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Backpack,
+  ChartNoAxesCombined,
   Boxes,
   CircleHelp,
   Disc3,
@@ -32,7 +33,6 @@ import {
   Weight,
   ChevronRight,
   Check,
-  RotateCcw,
   ImagePlus,
 } from "lucide-react";
 import {
@@ -43,6 +43,7 @@ import {
   type Mold,
 } from "@/lib/types";
 import type { DiscInput } from "@/lib/validation";
+import { prepareLocationChange } from "@/lib/location";
 
 type Auth = { canEdit: boolean; loginAvailable: boolean; local: boolean };
 type LocationFilter = "All discs" | (typeof locations)[number];
@@ -330,6 +331,10 @@ export default function Dashboard({ selectedId }: { selectedId?: string }) {
         </Link>
         <p className="nav-label">COLLECTION</p>
         <nav aria-label="Collection location">
+          <Link href="/flight-guide" className="nav-item">
+            <ChartNoAxesCombined size={20} />
+            <span>Flight guide</span>
+          </Link>
           {(["All discs", ...locations] as LocationFilter[]).map((place) => {
             const Icon = locationIcons[place];
             return (
@@ -798,12 +803,8 @@ export default function Dashboard({ selectedId }: { selectedId?: string }) {
               canEdit={auth.canEdit}
               edit={() => setEditing(detail.disc)}
               remove={() => setDeleteTarget(detail.disc)}
-              changeLocation={() =>
-                setEditing({
-                  ...detail.disc,
-                  location: detail.disc.location === "Lost" ? "In Bag" : "Lost",
-                  lostAt: detail.disc.location === "Lost" ? null : today(),
-                })
+              changeLocation={(location) =>
+                setEditing(prepareLocationChange(detail.disc, location, today()))
               }
             />
           )}
@@ -859,7 +860,7 @@ export default function Dashboard({ selectedId }: { selectedId?: string }) {
   );
 }
 
-function DiscDetails({
+export function DiscDetails({
   data: { disc, history },
   canEdit,
   edit,
@@ -870,8 +871,14 @@ function DiscDetails({
   canEdit: boolean;
   edit: () => void;
   remove: () => void;
-  changeLocation: () => void;
+  changeLocation: (location: DiscInput["location"]) => void;
 }) {
+  const moveLabels = {
+    "In Bag": "Add to bag",
+    Storage: disc.location === "In Bag" ? "Remove from bag" : "Move to storage",
+    Lost: "Mark lost",
+    Other: "Move to other",
+  };
   return (
     <>
       <div className="modal-body detail-body">
@@ -887,6 +894,29 @@ function DiscDetails({
             <FlightNumbers disc={disc} labels />
           </div>
         </div>
+        {canEdit && (
+          <section className="detail-moves" aria-label="Move disc">
+            <h4>Move this disc</h4>
+            <p>Choose a destination, then review and save your changes.</p>
+            <div className="detail-move-buttons">
+              {locations.filter((place) => place !== disc.location).map((place) => {
+                const Icon = locationIcons[place];
+                return (
+                  <button
+                    key={place}
+                    type="button"
+                    className="secondary"
+                    title={`Move to ${place.toLowerCase()}`}
+                    onClick={() => changeLocation(place)}
+                  >
+                    <Icon size={17} />
+                    {moveLabels[place]}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
         <div className="detail-fields">
           {[
             ["Plastic", disc.plastic],
@@ -936,17 +966,9 @@ function DiscDetails({
         <div className="modal-footer detail-actions">
           <button className="text-button delete-link" onClick={remove}>
             <Trash2 size={16} />
-            Remove
+            Delete disc
           </button>
           <div>
-            <button className="secondary" onClick={changeLocation}>
-              {disc.location === "Lost" ? (
-                <RotateCcw size={17} />
-              ) : (
-                <MapPin size={17} />
-              )}
-              {disc.location === "Lost" ? "Mark recovered" : "Mark lost"}
-            </button>
             <button className="primary" onClick={edit}>
               <Pencil size={17} />
               Edit disc

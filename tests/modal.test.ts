@@ -2,7 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { act, createElement } from "react";
 import { JSDOM } from "jsdom";
-import { Modal } from "../src/components/dashboard";
+import { DiscDetails, Modal } from "../src/components/dashboard";
+import { locations, type Disc } from "../src/lib/types";
 
 test("photo picker cancellation preserves the modal and unsaved entry; dialog cancellation still closes", async () => {
   const page = new JSDOM('<!doctype html><div id="root"></div>', { url: "http://localhost:3000" });
@@ -48,6 +49,64 @@ test("photo picker cancellation preserves the modal and unsaved entry; dialog ca
     await act(async () => { dialog.dispatchEvent(cancelDialog); });
     assert.equal(closes, 1);
     assert.equal(cancelDialog.defaultPrevented, true);
+  } finally {
+    await act(async () => { root.unmount(); });
+    page.window.close();
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+});
+
+test("disc details offer every other location, send the correct destination, and stay read-only for visitors", async () => {
+  const page = new JSDOM('<!doctype html><div id="root"></div>', { url: "http://localhost:3000" });
+  const previous = new Map<string, PropertyDescriptor | undefined>();
+  for (const [key, value] of Object.entries({ window: page.window, document: page.window.document, IS_REACT_ACT_ENVIRONMENT: true })) {
+    previous.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
+    Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  }
+  const { createRoot } = await import("react-dom/client");
+  const root = createRoot(page.window.document.getElementById("root")!);
+  const disc: Disc = {
+    id: "test-disc", apiId: null, name: "Buzzz", brand: "Discraft", category: "Midrange",
+    plastic: "ESP", color: "Blue", weight: 175, speed: 5, glide: 4, turn: -1, fade: 1,
+    location: "In Bag", locationDetail: "Main bag", purchasedAt: null, purchasedFrom: "Local shop",
+    lostAt: null, notes: "", photo: null, createdAt: "2026-10-06T12:00:00Z", updatedAt: "2026-10-06T12:00:00Z",
+  };
+  let edits = 0;
+  let deletes = 0;
+  const selected: string[] = [];
+  const render = (location: string, canEdit = true) => createElement(DiscDetails, {
+    data: { disc: { ...disc, location }, history: [] }, canEdit,
+    edit: () => { edits++; }, remove: () => { deletes++; },
+    changeLocation: (destination) => { selected.push(destination); },
+  });
+  try {
+    for (const location of locations) {
+      await act(async () => { root.render(render(location)); });
+      const section = page.window.document.querySelector('section[aria-label="Move disc"]')!;
+      const buttons = Array.from(section.querySelectorAll("button"));
+      const destinations = locations.filter((destination) => destination !== location);
+      assert.equal(buttons.length, 3);
+      assert.deepEqual(buttons.map((button) => button.title), destinations.map((destination) => `Move to ${destination.toLowerCase()}`));
+      assert.deepEqual(buttons.map((button) => button.textContent), destinations.map((destination) => {
+        if (destination === "In Bag") return "Add to bag";
+        if (destination === "Storage") return location === "In Bag" ? "Remove from bag" : "Move to storage";
+        return destination === "Lost" ? "Mark lost" : "Move to other";
+      }));
+      for (const button of buttons) {
+        assert.equal(button.type, "button");
+        await act(async () => { button.click(); });
+      }
+      assert.deepEqual(selected.splice(0), destinations);
+      assert.equal(edits, 0);
+      assert.equal(deletes, 0, "removing from the bag must never delete the disc");
+    }
+    await act(async () => { root.render(render("In Bag", false)); });
+    assert.equal(page.window.document.querySelector('[aria-label="Move disc"]'), null);
+    assert.equal(page.window.document.querySelector("button"), null);
+    assert.match(page.window.document.body.textContent!, /Buzzz/);
   } finally {
     await act(async () => { root.unmount(); });
     page.window.close();

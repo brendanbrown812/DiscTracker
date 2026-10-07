@@ -21,6 +21,8 @@ import { checkOrigin } from "../src/lib/http";
 import { passwordMatches, validSession } from "../src/lib/auth";
 import { GET as catalog } from "../src/app/api/catalog/route";
 import { catalogCache } from "../src/lib/schema";
+import { prepareLocationChange } from "../src/lib/location";
+import { locations } from "../src/lib/types";
 
 const directory = mkdtempSync(path.join(tmpdir(), "disctracker-tests-"));
 process.env.DATA_DIR = directory;
@@ -96,6 +98,44 @@ test("two physical copies stay independent, preserve their flight snapshots and 
   deleteDisc(second.id);
   assert.equal(discHistory(first.id).length, 0);
   assert.equal(allDiscs().length, 0);
+});
+
+test("every location shortcut preserves disc data and records moves, losses, and recoveries only after saving", () => {
+  for (const source of locations) {
+    for (const destination of locations.filter((location) => location !== source)) {
+      const original = createDisc(parseDisc({
+        ...input, location: source, lostAt: source === "Lost" ? "2026-10-05" : null,
+      }), "fixture.jpg");
+      try {
+        const snapshot = { ...original };
+        const draft = prepareLocationChange(original, destination, "2026-10-06");
+        assert.deepEqual(original, snapshot, "preparing a change must not mutate the original");
+        assert.equal(getDisc(original.id)?.location, source, "a shortcut is a draft until saved");
+        assert.equal(discHistory(original.id).length, 1);
+        assert.equal(draft.location, destination);
+        assert.equal(draft.locationDetail, "", "old bag or loss details must not describe the new location");
+        assert.equal(draft.lostAt, destination === "Lost" ? "2026-10-06" : null);
+        assert.deepEqual(draft, {
+          ...original, location: destination, locationDetail: "",
+          lostAt: destination === "Lost" ? "2026-10-06" : null,
+        });
+        const saved = updateDisc(original.id, parseDisc(draft), draft.photo);
+        assert.ok(saved);
+        assert.equal(saved.location, destination);
+        assert.equal(saved.lostAt, draft.lostAt);
+        assert.equal(saved.photo, original.photo);
+        assert.equal(saved.createdAt, original.createdAt);
+        assert.equal(saved.speed, original.speed);
+        const history = discHistory(original.id);
+        assert.equal(history.length, 2);
+        const move = history.find((event) => event.location === destination)!;
+        assert.equal(move.kind, destination === "Lost" ? "Lost" : source === "Lost" ? "Recovered" : "Moved");
+        assert.equal(move.lostAt, draft.lostAt);
+      } finally {
+        deleteDisc(original.id);
+      }
+    }
+  }
 });
 
 test("photo uploads decode, normalize, strip metadata, and remove safely", async () => {

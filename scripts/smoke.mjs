@@ -257,6 +257,15 @@ try {
   for (const href of styles) assert.equal((await fetch(new URL(href.replace(/&amp;/g, "&"), origin))).status, 200);
   assert.equal((await fetch(`${origin}/favicon.svg`)).status, 200);
   console.log("PASS: standalone startup, production page, JavaScript, CSS, and favicon");
+  const guideResponse = await fetch(`${origin}/flight-guide`);
+  assert.equal(guideResponse.status, 200);
+  const guideHtml = await guideResponse.text();
+  assert.match(guideHtml, /Flight guide/);
+  assert.match(guideHtml, /Loading your flight guide/);
+  const guideStyles = [...guideHtml.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map((match) => match[1]);
+  assert.ok(guideStyles.length > 0);
+  for (const href of guideStyles) assert.equal((await fetch(new URL(href.replace(/&amp;/g, "&"), origin))).status, 200);
+  console.log("PASS: public read-only flight-guide route and production styles");
   await stop();
   const httpsOrigin = "https://discs.example.com";
   await start(true, httpsOrigin);
