@@ -1,4 +1,12 @@
-import { sqliteTable, text, real } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, real, integer } from "drizzle-orm/sqlite-core";
+
+export const puttingSessions = sqliteTable("putting_sessions", {
+  id: text("id").primaryKey(),
+  rounds: text("rounds").notNull(),
+  createdAt: text("created_at").notNull(),
+  completedAt: text("completed_at"),
+  revision: integer("revision").notNull().default(0),
+});
 
 export const discs = sqliteTable("discs", {
   id: text("id").primaryKey(),

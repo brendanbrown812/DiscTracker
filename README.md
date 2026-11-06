@@ -21,8 +21,15 @@ Open http://localhost:3000. The development server binds to your computer's loop
 
 The SQLite database and uploaded photos are stored in `data/`, outside Git. DiscIt search is proxied through the server and cached for 24 hours; previously cached results are available during an API outage. Manual entry works at any time. Photos are converted to JPEG, resized, and stripped of metadata; PNG, JPEG, and WebP are reliable choices. Optional HEIC/AVIF support depends on the installed image decoder.
 
+## Putting Practice
+
+Open **Putting Practice** in the navigation. Owner access is required to start or record a session (sign in from Collection); visitors can view history and results. Configure rounds in feet with a putt count for each distance, then start. Tap **Make** or **Miss** for each putt; rounds advance automatically, and the final putt completes the session. **Undo last putt** is available while a session is in progress. Every successful tap is saved before the next is accepted; failed saves leave the last saved state unchanged. Resume unfinished sessions from practice history after navigating away or restarting.
+
+Overview statistics aggregate completed sessions only, including makes/attempts and weighted make percentages by distance. Practices are stored in the existing SQLite database and persistent Docker volume (automatic additive migration), included in database backups and JSON exports. No new deployment configuration is required. Use a database backup, rather than a JSON export alone, when transferring the complete application data.
+
 ## Features
 
+- Putting practice plans, make/miss scoring, resumable sessions, history, and distance statistics.
 - Add, edit, view, and remove discs, including photos.
 - DiscIt mold lookup and saved speed, glide, turn, and fade values.
 - Grid and table views; location, manufacturer, plastic, category, and speed filters.

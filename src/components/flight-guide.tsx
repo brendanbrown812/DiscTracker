@@ -607,6 +607,7 @@ export default function FlightGuide() {
             <ChartNoAxesCombined size={20} />
             Flight guide
           </Link>
+          <Link href="/putting-practice" className="nav-item"><Disc3 size={20}/>Putting Practice</Link>
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-note">

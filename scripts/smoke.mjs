@@ -168,6 +168,22 @@ try {
     403,
   );
   console.log("PASS: LAN HTTP owner login, cookie flags, and origin/port protection");
+  const puttingPlan = [{distance:20,attempts:2},{distance:10,attempts:1}];
+  for (const method of ['POST','PATCH']) {
+    assert.equal((await fetch(`${origin}/api/putting`, {method,headers:{Origin:lanOrigin,'Content-Type':'application/json'},body:JSON.stringify(puttingPlan)})).status,401);
+    assert.equal((await fetch(`${origin}/api/putting`, {method,headers:{...headers,Origin:'https://other.example','Content-Type':'application/json'},body:JSON.stringify(puttingPlan)})).status,403);
+  }
+  const practiceResponse = await fetch(`${origin}/api/putting`,{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify(puttingPlan)});
+  assert.equal(practiceResponse.status,201);
+  const practice = await practiceResponse.json();
+  const rounds = [{distance:20,attempts:2,results:[true,false]},{distance:10,attempts:1,results:[true]}];
+  const practiceUpdate = {method:'PATCH',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({id:practice.id,revision:0,rounds})};
+  const finished = await fetch(`${origin}/api/putting`,practiceUpdate);
+  assert.equal(finished.status,200);
+  assert.ok((await finished.json()).completedAt);
+  assert.equal((await fetch(`${origin}/api/putting`,practiceUpdate)).status,409);
+  assert.equal((await fetch(`${origin}/putting-practice`)).status,200);
+  console.log('PASS: putting practice creation, scoring, completion, stale updates, owner access, and CSRF');
   const image = await sharp({
     create: { width: 100, height: 100, channels: 3, background: "blue" },
   })
@@ -220,10 +236,14 @@ try {
     await fetch(`${origin}/api/export`, { headers })
   ).json();
   assert.equal(exported.discs[0].history.length, 3);
+  assert.equal(exported.puttingPractices[0].id,practice.id);
   console.log("PASS: photo upload, edits, loss/recovery history, and export");
   await stop();
   await start(true);
   const persisted = await (await fetch(`${origin}/api/discs`)).json();
+  const persistedPractice = await (await fetch(`${origin}/api/putting`)).json();
+  assert.deepEqual(persistedPractice[0].rounds,rounds);
+  assert.equal(persistedPractice[0].id,practice.id);
   assert.equal(persisted[0].id, created.id);
   assert.equal((await fetch(`${origin}/api/photos/${created.photo}`)).status, 200);
   assert.equal(

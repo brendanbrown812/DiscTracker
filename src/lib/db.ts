@@ -36,6 +36,13 @@ function openDatabase() {
       PRAGMA user_version = 1;
     `);
     })();
+  if (version < 2)
+    sqlite.transaction(() => {
+      sqlite.exec(`CREATE TABLE putting_sessions (
+        id TEXT PRIMARY KEY, rounds TEXT NOT NULL, created_at TEXT NOT NULL,
+        completed_at TEXT, revision INTEGER NOT NULL DEFAULT 0
+      ); PRAGMA user_version = 2;`);
+    })();
   return { sqlite, orm: drizzle(sqlite, { schema }) };
 }
 const globalDb = globalThis as unknown as {

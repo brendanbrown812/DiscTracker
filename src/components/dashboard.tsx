@@ -360,6 +360,7 @@ export default function Dashboard({ selectedId }: { selectedId?: string }) {
               </button>
             );
           })}
+          <Link href="/putting-practice" className="nav-item"><Disc3 size={20}/><span>Putting Practice</span></Link>
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-note">

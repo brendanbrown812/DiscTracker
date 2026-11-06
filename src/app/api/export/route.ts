@@ -1,5 +1,6 @@
 import { allDiscs, discHistory } from "@/lib/collection";
 import { canEdit } from "@/lib/auth";
+import { listPractice } from "@/lib/putting-store";
 import { handle, HttpError } from "@/lib/http";
 export const dynamic = "force-dynamic";
 export async function GET() {
@@ -9,6 +10,7 @@ export async function GET() {
     const data = {
       version: 1,
       exportedAt: new Date().toISOString(),
+      puttingPractices: listPractice(),
       discs: allDiscs().map((disc) => ({
         ...disc,
         history: discHistory(disc.id),
